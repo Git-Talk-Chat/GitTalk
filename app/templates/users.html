@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 24px;">
+    <!-- HEADER E BUSCA -->
+    <div style="margin-bottom: 32px;">
+        <h1 style="font-size: 28px; font-weight: bold; margin: 0 0 16px 0; color: #0f0;">👥 Comunidade de Devs</h1>
+        
+        <div style="display: flex; gap: 12px;">
+            <input id="search-input" type="text" placeholder="Pesquisar usuários (GitHub)..." 
+                   style="flex: 1; padding: 12px; border: 1px solid #333; border-radius: 6px; background: #252525; color: white; font-size: 14px;">
+            <button onclick="searchUsers()" style="padding: 12px 24px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">🔍 Pesquisar</button>
+        </div>
+    </div>
+
+    <!-- GRID DE USUÁRIOS -->
+    <div id="users-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+        <p style="text-align: center; color: #666; grid-column: 1/-1;">⏳ Carregando usuários...</p>
+    </div>
+</div>
+
+<script>
+    const token = "{{ session.get('access_token', '') }}";
+
+    async function loadUsers(searchTerm = '') {
+        const grid = document.getElementById('users-grid');
+        grid.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1/-1;">⏳ Carregando...</p>';
+
+        try {
+            let url = 'https://api.github.com/search/users?q=type:user&sort=followers&order=desc&per_page=30';
+            
+            if (searchTerm) {
+                url = `https://api.github.com/search/users?q=${encodeURIComponent(searchTerm)}&sort=followers&order=desc&per_page=30`;
+            }
+
+            const headers = token ? { 'Authorization': `token ${token}` } : {};
+            const response = await fetch(url, { headers });
+            
+            if (!response.ok) {
+                throw new Error(`GitHub API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const users = data.items || [];
+
+            if (users.length === 0) {
+                grid.innerHTML = `<p style="color: #666; grid-column: 1/-1;">Nenhum usuário encontrado</p>`;
+                return;
+            }
+
+            // Buscar detalhes de cada usuário
+            const userDetails = await Promise.all(
+                users.slice(0, 30).map(u => 
+                    fetch(`https://api.github.com/users/${u.login}`, { headers })
+                        .then(r => r.json())
+                        .catch(() => u)
+                )
+            );
+
+            grid.innerHTML = userDetails.map(user => `
+                <div style="background: #252525; border: 1px solid #333; border-radius: 8px; padding: 20px; display: flex; flex-direction: column;">
+                    <img src="${user.avatar_url}" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 12px; cursor: pointer;" onclick="location.href='https://github.com/${user.login}' target='_blank'">
+                    
+                    <h3 style="margin: 0 0 4px 0; cursor: pointer; color: #0f0; word-break: break-word;" onclick="location.href='https://github.com/${user.login}'>@${user.login}</h3>
+                    
+                    <p style="margin: 0 0 8px 0; color: #999; font-size: 12px;">${user.name || 'Sem nome'}</p>
+                    
+                    <p style="margin: 0 0 12px 0; color: #999; font-size: 13px; flex: 1; min-height: 40px;">${user.bio ? user.bio.substring(0, 100) : 'Sem bio'}</p>
+                    
+                    <div style="display: flex; gap: 8px; font-size: 11px; margin-bottom: 12px; color: #666;">
+                        <span>⭐ ${user.public_repos || 0} repos</span>
+                        <span>👥 ${user.followers || 0} followers</span>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="window.open('https://github.com/${user.login}', '_blank')" style="flex: 1; padding: 8px; background: #1f6feb; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">👤 GitHub</button>
+                        <button onclick="location.href='/profile/${user.login}'" style="flex: 1; padding: 8px; background: #238636; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">📄 Perfil</button>
+                    </div>
+                </div>
+            `).join('');
+        } catch (err) {
+            console.error('Erro:', err);
+            grid.innerHTML = `<p style="color: #f44; grid-column: 1/-1;">Erro ao carregar usuários: ${err.message}</p>`;
+        }
+    }
+
+    function searchUsers() {
+        const term = document.getElementById('search-input').value.trim();
+        loadUsers(term);
+    }
+
+    // Carregar usuários ao abrir a página
+    loadUsers();
+
+    // Busca automática ao digitar (com debounce)
+    let searchTimeout;
+    document.getElementById('search-input').addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            const term = e.target.value.trim();
+            if (term.length > 0) {
+                loadUsers(term);
+            }
+        }, 500);
+    });
+</script>
+
+{% endblock %}
+

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Autenticando GitTalk...</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="background: #111; color: #eee; font-family: sans-serif;">
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+        <p id="msg">Finalizando login, aguarde...</p>
+    </div>
+
+
+<script src="{{ url_for('static', filename='js/supabase.js') }}"></script>
+<script>
+   const client = supabase.createClient("{{ config['SUPABASE_URL'] }}", "{{ config['SUPABASE_ANON_KEY'] }}");
+
+async function startAuth() {
+    console.log("A verificar fragmento da URL...");
+    const msgEl = document.getElementById('msg');
+
+    // onAuthStateChange deteta a sessão assim que o fragmento # é processado
+    client.auth.onAuthStateChange(async (event, session) => {
+        if (session) {
+            console.log("Sessão detetada via evento!", session);
+            
+            const response = await fetch("{{ url_for('auth.set_session') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user: session.user,
+                    access_token: session.provider_token || session.access_token
+                })
+            });
+
+            if (response.ok) {
+                window.location.href = "{{ url_for('common.index') }}"; 
+            }
+        } else {
+            console.log("Ainda sem sessão...");
+            msgEl.innerText = "A autenticar com o GitHub...";
+        }
+    });
+}
+
+window.onload = startAuth;
+
+</script>
+
+</body>
+</html>

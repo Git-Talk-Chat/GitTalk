@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-12 px-4">
+    <div class="mb-8">
+        <a href="/profile/{{ user.login }}" class="text-green-400 hover:text-green-300">← Voltar</a>
+        <h1 class="text-3xl font-bold mt-2">Seguidores de @{{ user.login }}</h1>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for follower in followers %}
+        <div class="bg-gray-800 rounded p-6 border border-gray-700 text-center">
+            <img src="{{ follower.avatar_url }}" class="w-16 h-16 rounded-full mx-auto mb-3">
+            <h3 class="font-bold">{{ follower.name or follower.login }}</h3>
+            <p class="text-green-400">@{{ follower.login }}</p>
+            <div class="flex gap-2 mt-4 justify-center">
+                <a href="/dm/{{ follower.login }}" class="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm">DM</a>
+                <a href="/profile/{{ follower.login }}" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm">Perfil</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not followers %}
+    <p class="text-gray-400 text-center py-8">Nenhum seguidor</p>
+    {% endif %}
+</div>
+{% endblock %}

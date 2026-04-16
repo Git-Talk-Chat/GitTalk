@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-12 px-4">
+    <h1 class="text-4xl font-bold mb-8">💬 Mensagens</h1>
+    
+    <div style="display: flex; flex-direction: column; gap: 8px;" id="chats-list">
+        <p style="color: #666; text-align: center; padding: 32px;">Nenhum chat ainda. Comece a conversar com desenvolvedores!</p>
+    </div>
+</div>
+
+<script>
+    const currentUser = "{{ user.user_metadata.user_name }}";
+
+    function loadChats() {
+        const chatsList = document.getElementById('chats-list');
+        const chats = {};
+
+        // Varrer todos os localStorage para encontrar chats
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            
+            // Chats aparecem como dm_user1_user2
+            if (key.startsWith('dm_')) {
+                const parts = key.substring(3).split('_');
+                if (parts.length >= 2) {
+                    const user1 = parts[0];
+                    const user2 = parts.slice(1).join('_');
+                    
+                    // Encontrar o outro utilizador
+                    let otherUser = null;
+                    if (user1 === currentUser) {
+                        otherUser = user2;
+                    } else if (user2 === currentUser) {
+                        otherUser = user1;
+                    }
+                    
+                    if (otherUser) {
+                        const messages = JSON.parse(localStorage.getItem(key)) || [];
+                        if (messages.length > 0) {
+                            const lastMsg = messages[messages.length - 1];
+                            const time = lastMsg.created_at ? new Date(lastMsg.created_at).toLocaleTimeString() : 'agora';
+                            
+                            chats[otherUser] = {
+                                user: otherUser,
+                                lastMessage: lastMsg.content.substring(0, 60),
+                                sender: lastMsg.user_name,
+                                time: time
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
+        const chatEntries = Object.values(chats);
+        
+        if (chatEntries.length === 0) {
+            chatsList.innerHTML = '<p style="color: #666; text-align: center; padding: 32px;">Nenhum chat ainda. Comece a conversar!</p>';
+            return;
+        }
+
+        // Ordenar por mais recente
+        chatEntries.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+        chatsList.innerHTML = chatEntries.map(chat => `
+            <div onclick="location.href='/dm/${chat.user}'" style="padding: 12px; background: #252525; border: 1px solid #333; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 12px;">
+                <div style="flex-shrink: 0; width: 50px; height: 50px; background: #1f6feb; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                    ${chat.user.charAt(0).toUpperCase()}
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                    <p style="margin: 0; font-weight: bold; color: #0f0;">@${chat.user}</p>
+                    <p style="margin: 4px 0 0 0; color: #999; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <strong>${chat.sender}:</strong> ${chat.lastMessage}
+                    </p>
+                </div>
+                <div style="flex-shrink: 0; text-align: right; color: #666; font-size: 11px;">
+                    ${chat.time}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    loadChats();
+
+    // Atualizar a cada 5 segundos
+    setInterval(loadChats, 5000);
+</script>
+
+{% endblock %}

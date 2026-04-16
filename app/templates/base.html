@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitTalk</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <!-- NAVBAR -->
+    <nav class="bg-gray-800 border-b border-gray-700 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="/" class="text-2xl font-bold text-green-500">GitTalk</a>
+            
+            <div class="hidden md:flex gap-6">
+                {% if session.get('user') %}
+                    <a href="/" class="hover:text-green-400">Explorar</a>
+                    <a href="/users" class="hover:text-green-400">Comunidade</a>
+                    <a href="/profile/{{ session['user']['user_metadata']['user_name'] }}" class="hover:text-green-400">Perfil</a>
+                {% endif %}
+            </div>
+            
+            <div class="flex gap-4 items-center">
+                {% if session.get('user') %}
+                    <img src="{{ session['user']['user_metadata']['avatar_url'] }}" class="w-8 h-8 rounded-full">
+                    <span class="text-sm">@{{ session['user']['user_metadata']['user_name'] }}</span>
+                    <a href="/logout" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded">Sair</a>
+                {% else %}
+                    <a href="/login" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENT -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-gray-800 border-t border-gray-700 mt-16 py-8 text-center text-gray-400">
+        <p>GitTalk © 2026</p>
+    </footer>
+</body>
+</html>
